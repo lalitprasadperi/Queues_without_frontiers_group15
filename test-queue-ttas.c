@@ -272,40 +272,73 @@ void *inc_thread(void *id) {
 }
 
 
+//-- int main(int argc, const char *argv[])
+//-- {
+//--     pthread_t *thr;
+//--     int ret = 0;
+//-- 
+//--     if (argc != 2) {
+//--         printf("Usage: %s <num of threads>\n", argv[0]);
+//--         exit(1);
+//--     }
+//-- 
+//--     nthr = atoi(argv[1]);
+//--     /*printf("using %d threads\n", nthr);*/
+//--     thr = calloc(sizeof(*thr), nthr);
+//-- 
+//--     // Start thread
+//--     for (long i = 0; i < nthr; i++) {
+//--         if (pthread_create(&thr[i], NULL, inc_thread, (void *)i) != 0) {
+//--             perror("thread creating failed");
+//--         }
+//--     }
+//--     // join thread
+//--     for (long i = 0; i < nthr; i++)
+//--         pthread_join(thr[i], NULL);
+//-- 
+//--     calc_time(&start_time, &end_time);
+//--     /*
+//--      *for (int i = 0; i < NCOUNTER; i++) {
+//--      *    if (counter[i] == N_PAIR) {
+//--      *    } else {
+//--      *        printf("counter %d error\n", i);
+//--      *        ret = 1;
+//--      *    }
+//--      *}
+//--      */
+//-- 
+//--     return ret;
+//-- }
+
+//---------------------------------------------------------
+
+
+#define SIZE 1000000
+
+//struct QNode {
+//  uint32_t queue_data;
+//  uint8_t  thread_id;
+//}
+
+//QNode Que[SIZE];
+
+
 int main(int argc, const char *argv[])
 {
-    pthread_t *thr;
-    int ret = 0;
+     gettimeofday(&start_time, NULL);
 
-    if (argc != 2) {
-        printf("Usage: %s <num of threads>\n", argv[0]);
-        exit(1);
-    }
+    // Main body-here
+    // -------------------------------------
 
-    nthr = atoi(argv[1]);
-    /*printf("using %d threads\n", nthr);*/
-    thr = calloc(sizeof(*thr), nthr);
 
-    // Start thread
-    for (long i = 0; i < nthr; i++) {
-        if (pthread_create(&thr[i], NULL, inc_thread, (void *)i) != 0) {
-            perror("thread creating failed");
-        }
-    }
-    // join thread
-    for (long i = 0; i < nthr; i++)
-        pthread_join(thr[i], NULL);
 
-    calc_time(&start_time, &end_time);
-    /*
-     *for (int i = 0; i < NCOUNTER; i++) {
-     *    if (counter[i] == N_PAIR) {
-     *    } else {
-     *        printf("counter %d error\n", i);
-     *        ret = 1;
-     *    }
-     *}
-     */
 
-    return ret;
+    // -------------------------------------
+
+     gettimeofday(&end_time, NULL);
+     calc_time(&start_time, &end_time);
+
+     return;
 }
+
+
