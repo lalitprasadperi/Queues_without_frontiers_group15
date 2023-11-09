@@ -3,9 +3,9 @@
 #include "spinlock-ttas.h"
 
 int main() {
-    spinlock lock = SPINLOCK_INITIALIZER;
-    Queue *q = malloc(sizeof(Queue));
+    queue_t *q;
+    initialize(q);
     enqueue(q, 1);
     enqueue(q, 2);
-    return 0;
+    enqueue(q, 3);
 }

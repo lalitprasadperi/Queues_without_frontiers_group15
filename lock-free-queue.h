@@ -1,68 +1,78 @@
-#ifndef LOCK_FREE_QUEUE_H
-#define LOCK_FREE_QUEUE_H
 #include <stdlib.h>
+#include <stdbool.h>
 
-typedef struct {
-    int data;
-    struct QNode *next;
-} QNode;
+typedef struct node_t node_t;
+typedef struct queue_t queue_t;
+typedef struct pointer_t pointer_t;
 
-typedef struct {
-    struct QNode *head;
-    struct QNode *tail;
-} Queue;
+struct pointer_t {
+    node_t *ptr;
+    unsigned int count;
+};
 
-#define QUEUE_ATTR static __inline __attribute__((always_inline, no_instrument_function))
+struct node_t {
+    int value;
+    pointer_t next;
+};
 
-void enqueue(Queue * Q, int data) {
-    struct QNode *new_node = malloc(sizeof(struct QNode));
-    new_node->data = data;
-    new_node->next = NULL;
+struct queue_t {
+    pointer_t head;
+    pointer_t tail;
+};
 
-
-    // struct QNode *new_node = malloc(sizeof(struct QNode));
-    // new_node->data = data;
-    // new_node->next = NULL;
-
-    // while (true) {
-    //     struct QNode *tail = Q.tail;
-    //     struct QNode *next = tail->next;
-
-    //     if (tail == Q.tail) {
-    //         if (next == NULL) {
-    //             if (__sync_bool_compare_and_swap(&tail->next, NULL, new_node)) {
-    //                 __sync_bool_compare_and_swap(&Q.tail, tail, new_node);
-    //                 return;
-    //             }
-    //         } else {
-    //             __sync_bool_compare_and_swap(&Q.tail, tail, next);
-    //         }
-    //     }
-    // }
+void initialize(queue_t *q) {
+    node_t *node;
+    node->next.ptr = NULL;
+    node->next.count = 0;
+    q->head.ptr = q->tail.ptr = node;
+    q->head.count = q->tail.count = 0;
 }
 
-int dequeue(Queue * Q, int *data) {
-    while (true) {
-        struct QNode *head = Q.head;
-        struct QNode *tail = Q.tail;
-        struct QNode *next = head->next;
+#define END_MARKER ((void*)-2)
 
-        if (head == Q.head) {
-            if (head == tail) {
-                if (next == NULL) {
-                    return 0;
+void enqueue(queue_t *q, int value) {
+    node_t *node;
+    node->value = value;
+    node->next.ptr = NULL;
+    node->next.count = 0;
+    pointer_t tail, next;
+    while (1) {
+        tail = q->tail;
+        pointer_t next = tail.ptr->next;
+        if (tail.ptr == q->tail.ptr) {
+            if (next.ptr == NULL) {
+                if (__sync_val_compare_and_swap((volatile *)&tail.ptr->next, next, node)) {
+                    break;
                 }
-                __sync_bool_compare_and_swap(&Q.tail, tail, next);
             } else {
-                *data = next->data;
-                if (__sync_bool_compare_and_swap(&Q.head, head, next)) {
-                    free(head);
-                    return 1;
+                __sync_val_compare_and_swap((volatile *)&q->tail, tail, next);
+            }
+        }
+    }
+    __sync_val_compare_and_swap((volatile *)&q->tail, tail, node);
+}
+
+bool dequeue(queue_t *q, int *value) {
+    pointer_t head, tail, next;
+    while (true) {
+        head = q->head;
+        tail = q->tail;
+        next = head.ptr->next;
+        if (head.ptr == q->head.ptr) {
+            if (head.ptr == tail.ptr) {
+                if (next.ptr == NULL) {
+                    return false;
+                }
+                __sync_val_compare_and_swap((volatile *)&q->tail, tail, next);
+            } else {
+                *value = next.ptr->value;
+                if (__sync_val_compare_and_swap((volatile *)&q->head, head, next)) {
+                    break;
                 }
             }
         }
     }
+    head.ptr = NULL;
+    return true;
 }
-
-#endif
 
