@@ -7,12 +7,16 @@
 #include <stdint.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <assert.h>
+#include <stdbool.h>
 
-#include "spinlock-ttas.h"
+#include "queue-ttas.h"
 
 #ifndef cpu_relax
 #define cpu_relax() asm volatile("pause\n": : :"memory")
 #endif
+
+#define barrier() asm volatile("": : :"memory")
 
 /*
  * You need  to provide your own code for bidning threads to processors
@@ -23,7 +27,7 @@
 /* Number of total lock/unlock pair.
  * Note we need to ensure the total pair of lock and unlock opeartion are the
  * same no matter how many threads are used. */
-#define N_PAIR 16000000
+#define N_PAIR 1000000
 
 /* Bind threads to specific cores. The goal is to make threads locate on the
  * same physical CPU. Modify bind_core before using this. */
@@ -93,51 +97,39 @@ void bind_core(int threadid) {
 }
 #endif
 
+#define QSIZE 1000000
 
+//-- typedef struct {
+//--   uint32_t data;
+//--   uint8_t  thread_id;
+//--   int *current;
+//--   int *next;
+//-- } Qnode;
+//-- 
+//-- int tail = 0;
+//-- int head = 1;
+//-- 
+//-- //Qnode qn;
 //---------------------------------------------------------
 
-#define SIZE 1000000
+int *head;
+int *tail;
 
-//struct QNode {
-//  uint32_t queue_data;
-//  uint8_t  thread_id;
-//}
-
-typedef struct {
+typedef struct Qnode
+{
   uint32_t data;
-  uint8_t  thread_id;
-  int *current;
-  int *next;
 } Qnode;
 
-int tail = 0;
-int head = 1;
+Qnode Qnode_array[QSIZE];
 
-Qnode qn;
-
-//void enqueue (Q, data) //enqueue a node with content "data" at the tail of the queue pointed to by Q
-void enqueue () //enqueue a node with content "data" at the tail of the queue pointed to by Q
-{
-        spin_lock(&sl);
-        //for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
-        spin_unlock(&sl);
-
-}
-
-//int dequeue(Q) //dequeue a node from the head of the queue pointed by Q and return its data
-void dequeue() //dequeue a node from the head of the queue pointed by Q and return its data
-{
-        spin_lock(&sl);
-        //for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
-        spin_unlock(&sl);
-}
+queue_t queue;
+//---------------------------------------------------------
 
 void scan()
 {
-        spin_lock(&sl);
-        //for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
-        spin_unlock(&sl);
-
+      //   spin_lock(&sl);
+      //  //for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
+      //  spin_unlock(&sl);
 }
 
 //------------------------------------------------
@@ -145,11 +137,8 @@ void scan()
 //------------------------------------------------
 void *inc_thread(void *id) {
 
-    int n = N_PAIR / nthr;
-    assert(n * nthr == N_PAIR);
-
-    int num_enq = SIZE / nthr;
-    int num_deq = SIZE / nthr;
+    int num_enq = QSIZE / nthr;
+    int num_deq = QSIZE / nthr;
 
 #ifdef BIND_CORE
     bind_core((int)(long)(id));
@@ -164,15 +153,24 @@ void *inc_thread(void *id) {
 
     /* Start enque / deque / scan test. */
 
+#ifdef TEST3
+    for (int i = 0; i < num_enq ; i++) {
+      queue_enq(&queue,&head); 
+    }
+    barrier();   // barrier after first enqueue
+#endif
+
 #ifdef ENQ
     for (int i = 0; i < num_enq ; i++) {
-        enqueue();
+      queue_enq(&queue,&head); 
+      //&head++; 
     }
 #endif
 
 #ifdef DEQ
     for (int i = 0; i < num_deq ; i++) {
-        dequeue();
+      queue_deq(&queue,&tail); 
+      //&tail++; 
     }
 #endif
 
@@ -202,6 +200,9 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
+     // Initialize Array based Q
+     queue_init(&queue, Qnode_array, QSIZE,sizeof(Qnode));
+
      gettimeofday(&start_time, NULL);
 
     // Main body-here
@@ -219,91 +220,16 @@ int main(int argc, const char *argv[])
      // join thread
      for (long i = 0; i < nthr; i++)
          pthread_join(thr[i], NULL);
- 
     // -------------------------------------
 
      gettimeofday(&end_time, NULL);
      calc_time(&start_time, &end_time);
 
+     // De-alloc Queue
+     queue_destroy(&queue);
+
      return ret;
 }
 
-
 //---------------------------------------------------------
-//-- 
-//-- main()
-//-- {
-//--     int ch;
-//--     while (1)
-//--     {
-//--         printf("1.Enqueue Operation\n");
-//--         printf("2.Dequeue Operation\n");
-//--         printf("3.Display the Queue\n");
-//--         printf("4.Exit\n");
-//--         printf("Enter your choice of operations : ");
-//--         scanf("%d", &ch);
-//--         switch (ch)
-//--         {
-//--             case 1:
-//--             enqueue();
-//--             break;
-//--             case 2:
-//--             dequeue();
-//--             break;
-//--             case 3:
-//--             show();
-//--             break;
-//--             case 4:
-//--             exit(0);
-//--             default:
-//--             printf("Incorrect choice \n");
-//--         } 
-//--     } 
-//-- } 
-//--  
-//-- void enqueue()
-//-- {
-//--     int insert_item;
-//--     if (Rear == SIZE - 1)
-//--        printf("Overflow \n");
-//--     else
-//--     {
-//--         if (Front == - 1)
-//--       
-//--         Front = 0;
-//--         printf("Element to be inserted in the Queue\n : ");
-//--         scanf("%d", &insert_item);
-//--         Rear = Rear + 1;
-//--         inp_arr[Rear] = insert_item;
-//--     }
-//-- } 
-//--  
-//-- void dequeue()
-//-- {
-//--     if (Front == - 1 || Front > Rear)
-//--     {
-//--         printf("Underflow \n");
-//--         return ;
-//--     }
-//--     else
-//--     {
-//--         printf("Element deleted from the Queue: %d\n", inp_arr[Front]);
-//--         Front = Front + 1;
-//--     }
-//-- } 
-//--  
-//-- void show()
-//-- {
-//--     
-//--     if (Front == - 1)
-//--         printf("Empty Queue \n");
-//--     else
-//--     {
-//--         printf("Queue: \n");
-//--         for (int i = Front; i <= Rear; i++)
-//--             printf("%d ", inp_arr[i]);
-//--         printf("\n");
-//--     }
-//-- }
-//-- 
-//-- 
+

@@ -13,10 +13,10 @@ function run_test() {
 make clean
 make all
 
-#echo "--------------------------------------"
-#echo "test test-spinlock-ttas"
-#echo "--------------------------------------"
-#run_test "test-spinlock-ttas"
+echo "--------------------------------------"
+echo "test test-spinlock-ttas"
+echo "--------------------------------------"
+run_test "test-spinlock-ttas"
 
 echo "--------------------------------------"
 echo "TEST ENQ-TTAS // 0.5 Million Enqueues "
@@ -27,7 +27,7 @@ echo "TEST DEQ-TTAS // 0.5 Million Dequeues "
 echo "--------------------------------------"
 run_test "test-deque-ttas"
 echo "--------------------------------------"
-echo "TEST ENQ.DEQ-TTAS // 0.5 Million Enqueues + 0.5 Million Dequeues"
+echo "TEST ENQ.ENQ.DEQ-TTAS // 0.5 Million Enqueues + 0.5 Million Enques-> 0.5 Million Dequeues"
 echo "--------------------------------------"
 run_test "test-enq-deq-ttas"
 
