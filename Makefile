@@ -1,4 +1,4 @@
-CFLAGS = -O2 -g -std=gnu99 -Wall -march=x86-64
+`CFLAGS = -O2 -g -std=gnu99 -Wall -march=x86-64
 LDFLAGS = -lpthread
 
 
