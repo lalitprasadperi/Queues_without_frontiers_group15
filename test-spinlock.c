@@ -23,7 +23,8 @@
 /* Number of total lock/unlock pair.
  * Note we need to ensure the total pair of lock and unlock opeartion are the
  * same no matter how many threads are used. */
-#define N_PAIR 16000000
+//#define N_PAIR 16000000
+#define N_PAIR 1000000
 
 /* Bind threads to specific cores. The goal is to make threads locate on the
  * same physical CPU. Modify bind_core before using this. */

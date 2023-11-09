@@ -7,12 +7,16 @@
 #include <stdint.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <assert.h>
+#include <stdbool.h>
 
-#include "spinlock-ttas.h"
+#include "queue-ttas.h"
 
 #ifndef cpu_relax
 #define cpu_relax() asm volatile("pause\n": : :"memory")
 #endif
+
+#define barrier() asm volatile("": : :"memory")
 
 /*
  * You need  to provide your own code for bidning threads to processors
@@ -23,7 +27,7 @@
 /* Number of total lock/unlock pair.
  * Note we need to ensure the total pair of lock and unlock opeartion are the
  * same no matter how many threads are used. */
-#define N_PAIR 16000000
+#define N_PAIR 1000000
 
 /* Bind threads to specific cores. The goal is to make threads locate on the
  * same physical CPU. Modify bind_core before using this. */
@@ -65,120 +69,11 @@ static void calc_time(struct timeval *start, struct timeval *end) {
 // Use thread local counter to avoid cache contention between cores.
 // For TSX, this avoids TX conflicts so the performance overhead/improvement is
 // due to TSX mechanism.
-static __thread int8_t counter[CACHE_LINE*NCOUNTER];
+//-- static __thread int8_t counter[CACHE_LINE*NCOUNTER];
 
-
-#ifdef MCS
-typedef struct mcs_lock_t mcs_lock_t;
-
-struct mcs_lock_t
-{
-	mcs_lock_t *next;
-	int spin;
-};
-
-typedef struct mcs_lock_t *mcs_lock;
-
-mcs_lock cnt_lock = NULL;
-//mcs_lock msl;
-
-static void lock_mcs(mcs_lock *m, mcs_lock_t *me)
-{
-	mcs_lock_t *tail;
-	
-	me->next = NULL;
-	me->spin = 0;
-
-	tail = xchg_64(m, me);
-	
-	if (!tail) return;
-	  tail->next = me;
-
-	barrier();
-	
-	/* Spin on my spin variable */
-	while (!me->spin) cpu_relax();
-	
-	return;
-}
-
-static void unlock_mcs(mcs_lock *m, mcs_lock_t *me)
-{
-	// Wait for successor
-	if (!me->next)
-	{
-		// Try to atomically unlock
-		if (cmpxchg(m, me, NULL) == me) return;
-
-		// Wait for successor to appear
-		while (!me->next) cpu_relax();
-	}
-	// Unlock next
-	me->next->spin = 1;	
-}
-
-#elif CLH
-
-typedef struct clh_lock_t clh_lock_t;
-
-struct clh_lock_t
-{
-	clh_lock_t *next;
-	int spin;
-};
-
-typedef struct clh_lock_t *clh_lock;
-
-clh_lock cnt_lock = NULL;
-
-static void lock_clh(clh_lock *m, clh_lock_t *me)
-{
-	clh_lock_t *tail;
-	
-	me->next = NULL;
-	me->spin = 0;
-
-	tail = xchg_64(m, me);
-	
-	/* No one there? */
-	if (!tail) return;
-
-	/* Someone there, need to link in */
-	tail->next = me;
-
-	/* Make sure we do the above setting of next. */
-	barrier();
-	
-	/* Spin on my spin variable */
-	while (!me->spin) cpu_relax();
-
-	return;
-}
-
-static void unlock_clh(clh_lock *m, clh_lock_t *me)
-{
-	/* No successor yet? */
-	if (!me->next)
-	{
-		/* Try to atomically unlock */
-		if (cmpxchg(m, me, NULL) == me) return;
-	
-		/* Wait for successor to appear */
-		while (!me->next) cpu_relax();
-	}
-
-	/* Unlock next one */
-	me->next->spin = 1;	
-}
-
-
-#elif ONERING
-linuxstylelock linuxlock_t;
-
-#else
+#ifdef TTAS
 spinlock sl;
 #endif
-
 
 #ifdef BIND_CORE
 void bind_core(int threadid) {
@@ -202,17 +97,48 @@ void bind_core(int threadid) {
 }
 #endif
 
+#define QSIZE 1000000
+
+//-- typedef struct {
+//--   uint32_t data;
+//--   uint8_t  thread_id;
+//--   int *current;
+//--   int *next;
+//-- } Qnode;
+//-- 
+//-- int tail = 0;
+//-- int head = 1;
+//-- 
+//-- //Qnode qn;
+//---------------------------------------------------------
+
+int *head;
+int *tail;
+
+typedef struct Qnode
+{
+  uint32_t data;
+} Qnode;
+
+Qnode Qnode_array[QSIZE];
+
+queue_t queue;
+//---------------------------------------------------------
+
+void scan()
+{
+      //   spin_lock(&sl);
+      //  //for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
+      //  spin_unlock(&sl);
+}
+
+//------------------------------------------------
+// Thread creation here
+//------------------------------------------------
 void *inc_thread(void *id) {
-    int n = N_PAIR / nthr;
-    assert(n * nthr == N_PAIR);
 
-#ifdef MCS
-    mcs_lock_t local_lock;
-#endif
-
-#ifdef CLH
-    clh_lock_t local_lock;
-#endif
+    int num_enq = QSIZE / nthr;
+    int num_deq = QSIZE / nthr;
 
 #ifdef BIND_CORE
     bind_core((int)(long)(id));
@@ -220,60 +146,52 @@ void *inc_thread(void *id) {
 
     wait_flag(&wflag, nthr);
 
-    if (((long) id == 0)) {
+     if (((long) id == 0)) {
         /*printf("get start time\n");*/
         gettimeofday(&start_time, NULL);
+     }
+
+    /* Start enque / deque / scan test. */
+
+#ifdef TEST3
+    for (int i = 0; i < num_enq ; i++) {
+      queue_enq(&queue,&head); 
     }
-
-    /* Start lock unlock test. */
-    for (int i = 0; i < n; i++) {
-
-#ifdef MCS
-        lock_mcs(&cnt_lock, &local_lock);
-        //lock_mcs(&msl);
-        for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
-        unlock_mcs(&cnt_lock, &local_lock);
-        //unlock_mcs(&msl);
-
-#elif CLH
-        lock_clh(&cnt_lock, &local_lock);
-        for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
-        unlock_clh(&cnt_lock, &local_lock);
-	
-#elif ONERING
-        spin_lock(&linuxlock_t);
-        for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
-        spin_unlock(&linuxlock_t);
-
-#elif RTM
-        int status;
-        if ((status = _xbegin()) == _XBEGIN_STARTED) {
-            for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
-            if (sl == BUSY)
-                _xabort(1);
-            _xend();
-        } else {
-            spin_lock(&sl);
-            for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
-            spin_unlock(&sl);
-        }
-#else
-        spin_lock(&sl);
-        for (int j = 0; j < NCOUNTER; j++) counter[j*CACHE_LINE]++;
-        spin_unlock(&sl);
+    barrier();   // barrier after first enqueue
 #endif
+
+#ifdef ENQ
+    for (int i = 0; i < num_enq ; i++) {
+      queue_enq(&queue,&head); 
+      //&head++; 
     }
+#endif
+
+#ifdef DEQ
+    for (int i = 0; i < num_deq ; i++) {
+      queue_deq(&queue,&tail); 
+      //&tail++; 
+    }
+#endif
+
+#ifdef SCAN
+    for (int i = 0; i < num_enq ; i++) {
+        scan();
+    }
+#endif
 
     if (__sync_fetch_and_add((uint32_t *)&wflag, -1) == 1) {
-        /*printf("get end time\n");*/
         gettimeofday(&end_time, NULL);
     }
     return NULL;
 }
 
-
+//-----------------------------------
+// MAIN
+//-----------------------------------
 int main(int argc, const char *argv[])
 {
+
     pthread_t *thr;
     int ret = 0;
 
@@ -282,30 +200,36 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
-    nthr = atoi(argv[1]);
-    /*printf("using %d threads\n", nthr);*/
-    thr = calloc(sizeof(*thr), nthr);
+     // Initialize Array based Q
+     queue_init(&queue, Qnode_array, QSIZE,sizeof(Qnode));
 
-    // Start thread
-    for (long i = 0; i < nthr; i++) {
-        if (pthread_create(&thr[i], NULL, inc_thread, (void *)i) != 0) {
-            perror("thread creating failed");
-        }
-    }
-    // join thread
-    for (long i = 0; i < nthr; i++)
-        pthread_join(thr[i], NULL);
+     gettimeofday(&start_time, NULL);
 
-    calc_time(&start_time, &end_time);
-    /*
-     *for (int i = 0; i < NCOUNTER; i++) {
-     *    if (counter[i] == N_PAIR) {
-     *    } else {
-     *        printf("counter %d error\n", i);
-     *        ret = 1;
-     *    }
-     *}
-     */
+    // Main body-here
+    // -------------------------------------
+     nthr = atoi(argv[1]);
+     /*printf("using %d threads\n", nthr);*/
+     thr = calloc(sizeof(*thr), nthr);
+ 
+     // Start thread
+     for (long i = 0; i < nthr; i++) {
+         if (pthread_create(&thr[i], NULL, inc_thread, (void *)i) != 0) {
+             perror("thread creation failed");
+         }
+     }
+     // join thread
+     for (long i = 0; i < nthr; i++)
+         pthread_join(thr[i], NULL);
+    // -------------------------------------
 
-    return ret;
+     gettimeofday(&end_time, NULL);
+     calc_time(&start_time, &end_time);
+
+     // De-alloc Queue
+     queue_destroy(&queue);
+
+     return ret;
 }
+
+//---------------------------------------------------------
+
