@@ -14,29 +14,34 @@ typedef struct {
 
 #define QUEUE_ATTR static __inline __attribute__((always_inline, no_instrument_function))
 
-void enqueue(Queue Q, int data) {
+void enqueue(Queue * Q, int data) {
     struct QNode *new_node = malloc(sizeof(struct QNode));
     new_node->data = data;
     new_node->next = NULL;
 
-    while (true) {
-        struct QNode *tail = Q.tail;
-        struct QNode *next = tail->next;
 
-        if (tail == Q.tail) {
-            if (next == NULL) {
-                if (__sync_bool_compare_and_swap(&tail->next, NULL, new_node)) {
-                    __sync_bool_compare_and_swap(&Q.tail, tail, new_node);
-                    return;
-                }
-            } else {
-                __sync_bool_compare_and_swap(&Q.tail, tail, next);
-            }
-        }
-    }
+    // struct QNode *new_node = malloc(sizeof(struct QNode));
+    // new_node->data = data;
+    // new_node->next = NULL;
+
+    // while (true) {
+    //     struct QNode *tail = Q.tail;
+    //     struct QNode *next = tail->next;
+
+    //     if (tail == Q.tail) {
+    //         if (next == NULL) {
+    //             if (__sync_bool_compare_and_swap(&tail->next, NULL, new_node)) {
+    //                 __sync_bool_compare_and_swap(&Q.tail, tail, new_node);
+    //                 return;
+    //             }
+    //         } else {
+    //             __sync_bool_compare_and_swap(&Q.tail, tail, next);
+    //         }
+    //     }
+    // }
 }
 
-int dequeue(Queue Q, int *data) {
+int dequeue(Queue * Q, int *data) {
     while (true) {
         struct QNode *head = Q.head;
         struct QNode *tail = Q.tail;
