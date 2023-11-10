@@ -1,0 +1,65 @@
+rm -f *.o
+rm -f test-spinlock-ttas test-enque-ttas test-deque-ttas test-enq-deq-ttas test-enque-wait-free test-deque-wait-free test-enq-deq-wait-free 
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS test-spinlock.c -o test-spinlock-ttas -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DENQ -DTEST1 test-queue-ttas.c -o test-enque-ttas -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DDEQ -DTEST2 test-queue-ttas.c -o test-deque-ttas -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DENQ -DDEQ -DTEST3 test-queue-ttas.c -o test-enq-deq-ttas -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DENQ -DTEST1 test-queue-wait-free.c queue-wait-free.c -o test-enque-wait-free -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DDEQ -DTEST2 test-queue-wait-free.c queue-wait-free.c -o test-deque-wait-free -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DENQ -DDEQ -DTEST3 test-queue-wait-free.c queue-wait-free.c -o test-enq-deq-wait-free -lpthread
+--------------------------------------
+test test-spinlock-ttas
+--------------------------------------
+0.008443	0.008443	0.005882	
+0.015395	0.013996	0.013492	
+0.013309	0.013767	0.015805	
+0.015732	0.014563	0.014665	
+0.014191	0.014186	0.013758	
+--------------------------------------
+TEST#1 ENQ-TTAS // 1 Million Enqueues 
+--------------------------------------
+0.026050	0.028310	0.027295	
+0.182433	0.210491	0.194317	
+0.248955	0.242115	0.238337	
+0.238571	0.252537	0.248661	
+0.282196	0.292524	0.284150	
+--------------------------------------
+TEST#2 DEQ-TTAS // 1 Million Dequeues 
+--------------------------------------
+0.047583	0.045093	0.047033	
+0.173810	0.178550	0.218887	
+0.255360	0.233399	0.194696	
+0.215073	0.191348	0.203890	
+0.202601	0.206122	0.212884	
+--------------------------------------
+TEST#3 ENQ.ENQ.DEQ-TTAS // 1 Million Enqueues + 1 Million Enques-> 1 Million Dequeues
+--------------------------------------
+0.101417	0.085867	0.085486	
+0.588876	0.596225	0.568995	
+0.659896	0.842141	0.608468	
+0.814220	0.814813	0.808578	
+0.921437	0.850573	0.903723	
+--------------------------------------
+TEST#1 ENQ-WAIT-FREE // 1 Million Enqueues 
+--------------------------------------
+0.000198	0.000139	0.000168	
+0.000205	0.000249	0.000206	
+0.000360	0.000401	0.000405	
+0.000687	0.000643	0.000683	
+0.001247	0.001422	0.001160	
+--------------------------------------
+TEST#2 DEQ-WAIT-FREE // 1 Million Dequeues 
+--------------------------------------
+0.000178	0.000139	0.000185	
+0.000254	0.000191	0.000256	
+0.000386	0.000393	0.000385	
+0.000685	0.000652	0.000655	
+0.001182	0.001237	0.001227	
+--------------------------------------
+TEST#3 ENQ.ENQ.DEQ-WAIT-FREE // 1 Million Enqueues + 1 Million Enques-> 1 Million Dequeues
+--------------------------------------
+0.000286	0.000415	0.000279	
+0.000588	0.000561	0.000515	
+0.000859	0.001008	0.000925	
+0.002248	0.002269	0.002260	
+0.004374	0.004236	0.004405	
