@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 
 #include "queue-ttas.h"
 
@@ -71,9 +72,9 @@ static void calc_time(struct timeval *start, struct timeval *end) {
 // due to TSX mechanism.
 //-- static __thread int8_t counter[CACHE_LINE*NCOUNTER];
 
-#ifdef TTAS
-spinlock sl;
-#endif
+//--#ifdef TTAS
+//--spinlock sl;
+//--#endif
 
 #ifdef BIND_CORE
 void bind_core(int threadid) {
@@ -123,8 +124,9 @@ typedef struct Qnode
 Qnode Qnode_array[QSIZE];
 
 queue_t queue;
-//---------------------------------------------------------
 
+//---------------------------------------------------------
+// Scan through the queue to check for correctness
 void scan()
 {
       //   spin_lock(&sl);
@@ -137,8 +139,6 @@ void scan()
 //------------------------------------------------
 void *inc_thread(void *id) {
 
-    int num_enq = QSIZE / nthr;
-    int num_deq = QSIZE / nthr;
 
 #ifdef BIND_CORE
     bind_core((int)(long)(id));
@@ -152,25 +152,35 @@ void *inc_thread(void *id) {
      }
 
     /* Start enque / deque / scan test. */
+#ifdef TEST1
+    int num_enq = QSIZE / nthr;
+    for (int i = 0; i < num_enq ; i++) {
+      queue_enq(&queue,&head); 
+    }
+#endif
+
+#ifdef TEST2
+    int num_deq = QSIZE / nthr;
+    for (int i = 0; i < num_deq ; i++) {
+      queue_deq(&queue,&tail); 
+    }
+#endif
 
 #ifdef TEST3
+    int num_enq = QSIZE / nthr;
+    int num_deq = QSIZE / nthr;
     for (int i = 0; i < num_enq ; i++) {
       queue_enq(&queue,&head); 
     }
     barrier();   // barrier after first enqueue
-#endif
+    atomic_thread_fence(memory_order_relaxed);
 
-#ifdef ENQ
     for (int i = 0; i < num_enq ; i++) {
       queue_enq(&queue,&head); 
-      //&head++; 
     }
-#endif
 
-#ifdef DEQ
     for (int i = 0; i < num_deq ; i++) {
       queue_deq(&queue,&tail); 
-      //&tail++; 
     }
 #endif
 
@@ -221,6 +231,8 @@ int main(int argc, const char *argv[])
      for (long i = 0; i < nthr; i++)
          pthread_join(thr[i], NULL);
     // -------------------------------------
+    //
+    //printf("%d thr PASS: ",nthr);
 
      gettimeofday(&end_time, NULL);
      calc_time(&start_time, &end_time);

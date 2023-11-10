@@ -175,7 +175,6 @@ bool queue_enq(queue_t *queue, void const *src)
     }
     else
     {
-        //pthread_mutex_lock(&queue->mutex);
         spin_lock(&sl);
         
         dest = index_to_address(queue, queue->in);
@@ -183,7 +182,6 @@ bool queue_enq(queue_t *queue, void const *src)
         queue->in = (queue->in + 1) % queue->capacity;
         success = true;
         
-        //pthread_mutex_unlock(&queue->mutex);
         spin_unlock(&sl);
     }
     return success;
@@ -200,7 +198,6 @@ bool queue_deq(queue_t *queue, void *dest)
     }
     else
     {
-        //pthread_mutex_lock(&queue->mutex);
         spin_lock(&sl);
         
         if (dest != NULL)
@@ -210,7 +207,6 @@ bool queue_deq(queue_t *queue, void *dest)
         queue->out = (queue->out + 1) % queue->capacity;
         success = true;
         
-        //pthread_mutex_unlock(&queue->mutex);
         spin_unlock(&sl);
     }
     return success;

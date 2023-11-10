@@ -298,6 +298,7 @@ int main(int argc, const char *argv[])
         pthread_join(thr[i], NULL);
 
     calc_time(&start_time, &end_time);
+
     /*
      *for (int i = 0; i < NCOUNTER; i++) {
      *    if (counter[i] == N_PAIR) {
