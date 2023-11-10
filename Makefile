@@ -1,40 +1,31 @@
-CFLAGS = -O3 -g -std=gnu99 -Wall -march=x86-64 -Wunused-variable
-LDFLAGS = -lpthread
+TESTS = msqueue
 
-#programs = test-spinlock-ttas  test-enque-ttas test-deque-ttas test-enq-deq-ttas test-enque-lock-free test-deque-lock-free test-enq-deq-lock-free test-enque-wait-free test-deque-wait-free test-enq-deq-wait-free
-programs = test-spinlock-ttas test-enque-ttas test-deque-ttas test-enq-deq-ttas 
+# if using clang, please also specify -mcx16 for x86-64
+CC = gcc
+CFLAGS = -g -Wall -O3 -pthread -D_GNU_SOURCE
+LDLIBS = -lpthread -lm
 
-all: $(programs)
+ifeq (${VERIFY}, 1)
+	CFLAGS += -DVERIFY
+endif
 
-test-spinlock-ttas: test-spinlock.c
-	$(CC) $(CFLAGS) -DTTAS $^ -o $@ $(LDFLAGS)
+ifeq (${SANITIZE}, 1)
+	CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+	LDLIBS += -lasan
+	LDFLAGS = -fsanitize=address
+endif
 
-test-enque-ttas: test-queue-ttas.c
-	$(CC) $(CFLAGS) -DTTAS -DENQ $^ -o $@ $(LDFLAGS)
-test-deque-ttas: test-queue-ttas.c
-	$(CC) $(CFLAGS) -DTTAS -DDEQ $^ -o $@ $(LDFLAGS)
-test-enq-deq-ttas: test-queue-ttas.c
-	$(CC) $(CFLAGS) -DTTAS -DENQ -DDEQ -DTEST3 $^ -o $@ $(LDFLAGS)
+all: $(TESTS)
 
-#test-enque-lock-free: test-queue-lock-free.c
-#	$(CC) $(CFLAGS) -DENQ $^ -o $@ $(LDFLAGS)
-#test-deque-lock-free: test-queue-lock-free.c
-#	$(CC) $(CFLAGS) -DDEQ $^ -o $@ $(LDFLAGS)
-#test-enq-deq-lock-free: test-queue-lock-free.c
-#	$(CC) $(CFLAGS) -DENQ -DDEQ $^ -o $@ $(LDFLAGS)
-#
-#test-enque-wait-free: test-queue-wait-free.c
-#	$(CC) $(CFLAGS) -DENQ $^ -o $@ $(LDFLAGS)
-#test-deque-wait-free: test-queue-wait-free.c
-#	$(CC) $(CFLAGS) -DDEQ $^ -o $@ $(LDFLAGS)
-#test-enq-deq-wait-free: test-queue-wait-free.c
-#	$(CC) $(CFLAGS) -DENQ -DDEQ $^ -o $@ $(LDFLAGS)
-#
-%:%.c
-	$(CC) $(CFLAGS) $< -o $@
+
+msqueue: CFLAGS += -DMSQUEUE -DTEST1
+
+$(TESTS): harness.o
+$(TESTS): tests.o
+
+msqueue lcrq: hzdptr.o
 
 clean:
-	-rm -f *.o
-	-rm -f $(programs)
+	rm -f $(TESTS) *.o
 
 
