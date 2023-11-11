@@ -1,0 +1,131 @@
+rm -f *.o
+rm -f test-spinlock-ttas test-enque-ttas test-deque-ttas test-enq-deq-ttas test-enque-wait-free test-deque-wait-free test-enq-deq-wait-free 
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS test-spinlock.c -o test-spinlock-ttas -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DENQ -DTEST1 test-queue-ttas.c -o test-enque-ttas -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DDEQ -DTEST2 test-queue-ttas.c -o test-deque-ttas -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DENQ -DDEQ -DTEST3 test-queue-ttas.c -o test-enq-deq-ttas -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DENQ -DTEST1 test-queue-wait-free.c queue-wait-free.c -o test-enque-wait-free -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DDEQ -DTEST2 test-queue-wait-free.c queue-wait-free.c -o test-deque-wait-free -lpthread
+cc -O2 -g -std=gnu99 -Wall -march=x86-64 -Wextra -Wunused-variable -DTTAS -DENQ -DDEQ -DTEST3 test-queue-wait-free.c queue-wait-free.c -o test-enq-deq-wait-free -lpthread
+--------------------------------------
+test test-spinlock-ttas
+--------------------------------------
+0.008479	
+0.011446	
+0.014428	
+0.014001	
+0.013721	
+--------------------------------------
+TEST#1 ENQ-TTAS // 1 Million Enqueues 
+--------------------------------------
+0.026983	
+0.059707	
+0.231408	
+0.268776	
+0.288986	
+--------------------------------------
+TEST#2 DEQ-TTAS // 1 Million Dequeues 
+--------------------------------------
+0.052169	
+0.161286	
+0.255964	
+0.231933	
+0.218687	
+--------------------------------------
+TEST#3 ENQ.ENQ.DEQ-TTAS // 1 Million Enqueues + 1 Million Enques-> 1 Million Dequeues
+--------------------------------------
+0.090157	
+0.567211	
+0.701688	
+0.899224	
+0.914667	
+--------------------------------------
+TEST#1 ENQ-WAIT-FREE // 1 Million Enqueues 
+--------------------------------------
+0.000130	
+0.000212	
+0.000350	
+0.000697	
+0.001413	
+--------------------------------------
+TEST#2 DEQ-WAIT-FREE // 1 Million Dequeues 
+--------------------------------------
+0.000200	
+0.000218	
+0.000417	
+0.000614	
+0.001015	
+--------------------------------------
+TEST#3 ENQ.ENQ.DEQ-WAIT-FREE // 1 Million Enqueues + 1 Million Enques-> 1 Million Dequeues
+--------------------------------------
+0.000317	
+0.000461	
+0.001024	
+0.001742	
+0.004164	
+--------------------------------------
+--------------------------------------
+--------------------------------------
+TEST ENQ.DEQ-LOCK-FREE // 1 Million Enqueues + 1 Million Dequeues
+--------------------------------------
+===========================================
+  Benchmark: ./msqueue
+  Number of processors: 1
+  Number of operations: 10000000
+  #1 elapsed time: 142.91 ms
+  #2 elapsed time: 110.78 ms
+  #3 elapsed time: 108.13 ms
+  #4 elapsed time: 108.75 ms
+  #5 elapsed time: 107.36 ms
+  #6 elapsed time: 108.31 ms
+  Steady-state iterations: 2~6
+  Coefficient of variation: 0.01
+  Number of measurements: 5
+  Mean of elapsed time: 108.67 ms
+===========================================
+
+===========================================
+  Benchmark: ./msqueue
+  Number of processors: 2
+  Number of operations: 10000000
+  #1 elapsed time: 286.59 ms
+  #2 elapsed time: 291.09 ms
+  #3 elapsed time: 290.70 ms
+  #4 elapsed time: 296.75 ms
+  #5 elapsed time: 282.13 ms
+  Steady-state iterations: 1~5
+  Coefficient of variation: 0.02
+  Number of measurements: 5
+  Mean of elapsed time: 289.45 ms
+===========================================
+
+===========================================
+  Benchmark: ./msqueue
+  Number of processors: 4
+  Number of operations: 10000000
+  #1 elapsed time: 2648.38 ms
+  #2 elapsed time: 2654.93 ms
+  #3 elapsed time: 2670.64 ms
+  #4 elapsed time: 2656.92 ms
+  #5 elapsed time: 2636.36 ms
+  Steady-state iterations: 1~5
+  Coefficient of variation: 0.00
+  Number of measurements: 5
+  Mean of elapsed time: 2653.45 ms
+===========================================
+
+===========================================
+  Benchmark: ./msqueue
+  Number of processors: 8
+  Number of operations: 10000000
+  #1 elapsed time: 16356.81 ms
+  #2 elapsed time: 17073.14 ms
+  #3 elapsed time: 16992.10 ms
+  #4 elapsed time: 16970.33 ms
+  #5 elapsed time: 17258.28 ms
+  Steady-state iterations: 1~5
+  Coefficient of variation: 0.02
+  Number of measurements: 5
+  Mean of elapsed time: 16930.13 ms
+===========================================
+

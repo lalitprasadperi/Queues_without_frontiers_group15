@@ -1,3 +1,11 @@
+**Assignment and Homework Group #15**
+Lalit Prasad Peri (lalitprasad@vt.edu)
+Will Downey (willd20@vt.edu)
+
+**How to Compile and Run**
+> >make all           (this will build TTAS and Wait-free tests) 
+> >make -f Makefile2  (this will build lock-free tests)
+> >./run_test.sh      (run all)
 
 **Queues Without Frontiers**
 
